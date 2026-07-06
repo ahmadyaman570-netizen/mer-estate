@@ -27,8 +27,14 @@ export const signin = async (req, res, next) => {
       return next(errorHandler(401, "Invalid password"));
     }
     const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET);
-    const { password:pass, ...otherDetails } = validUser._doc;
-    res.cookie("access_token", token, {httpOnly:true, expires: new Date(Date.now() + 3600000)}).status(200).json(otherDetails);
+    const { password: pass, ...otherDetails } = validUser._doc;
+    res
+      .cookie("access_token", token, {
+        httpOnly: true,
+        expires: new Date(Date.now() + 3600000), 
+      })
+      .status(200)
+      .json(otherDetails);
   } catch (error) {
     next(error);
   }
