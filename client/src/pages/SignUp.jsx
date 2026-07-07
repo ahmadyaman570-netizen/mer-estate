@@ -43,14 +43,14 @@ export default function SignUp() {
         <input
           type="text"
           placeholder="Username"
-          className="border p-3 rounded-lg"
+          className="border p-3 rounded-lg bg-white"
           id="username"
           onChange={handleChange}
         />
         <input
           type="email"
           placeholder="Email"
-          className="border p-3 rounded-lg"
+          className="border p-3 rounded-lg bg-white"
           id="email"
           onChange={handleChange}
         />
