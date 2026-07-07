@@ -58,7 +58,7 @@ export default function SignUp() {
         <input
           type="password"
           placeholder="Password"
-          className="border p-3 rounded-lg"
+          className="border p-3 rounded-lg bg-white"
           id="password"
           onChange={handleChange}
         />
