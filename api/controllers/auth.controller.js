@@ -1,13 +1,35 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { errorHandler } from "../utils/error.js";
-import jwt from "jsonwebtoken";
+import { authCookieOptions, createAuthToken } from "../utils/authCookie.js";
+import {
+  sanitizeGooglePayload,
+  sanitizeLoginPayload,
+  sanitizeUserPayload,
+} from "../utils/validation.js";
+
+const getAdminEmails = () =>
+  [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAILS]
+    .filter(Boolean)
+    .flatMap((value) => value.split(","))
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+const isAdminEmail = (email) => getAdminEmails().includes(email.toLowerCase());
 
 export const signup = async (req, res, next) => {
-  const { username, email, password } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  const newUser = new User({ username, email, password: hashedPassword });
   try {
+    const { username, email, password } = sanitizeUserPayload(req.body, {
+      required: true,
+    });
+    const hashedPassword = bcrypt.hashSync(password, 12);
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      isAdmin: isAdminEmail(email),
+    });
+
     await newUser.save();
     res.status(201).json("User has been created successfully");
   } catch (error) {
@@ -16,23 +38,24 @@ export const signup = async (req, res, next) => {
 };
 
 export const signin = async (req, res, next) => {
-  const { email, password } = req.body;
   try {
-    const validUser = await User.findOne({ email });
+    const { email, password } = sanitizeLoginPayload(req.body);
+    const validUser = await User.findOne({ email }).select("+password");
     if (!validUser) {
-      return next(errorHandler(404, "User not found"));
+      return next(errorHandler(401, "Invalid email or password"));
     }
     const validPassword = bcrypt.compareSync(password, validUser.password);
     if (!validPassword) {
-      return next(errorHandler(401, "Invalid password"));
+      return next(errorHandler(401, "Invalid email or password"));
     }
-    const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET);
+    if (isAdminEmail(validUser.email) && !validUser.isAdmin) {
+      validUser.isAdmin = true;
+      await validUser.save();
+    }
+    const token = createAuthToken(validUser._id);
     const { password: pass, ...otherDetails } = validUser._doc;
     res
-      .cookie("access_token", token, {
-        httpOnly: true,
-        expires: new Date(Date.now() + 3600000),
-      })
+      .cookie("access_token", token, authCookieOptions)
       .status(200)
       .json(otherDetails);
   } catch (error) {
@@ -42,15 +65,17 @@ export const signin = async (req, res, next) => {
 
 export const googleAuth = async (req, res, next) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
+    const { email, name, photoURL } = sanitizeGooglePayload(req.body);
+    const user = await User.findOne({ email });
     if (user) {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+      if (isAdminEmail(user.email) && !user.isAdmin) {
+        user.isAdmin = true;
+        await user.save();
+      }
+      const token = createAuthToken(user._id);
       const { password, ...otherDetails } = user._doc;
       res
-        .cookie("access_token", token, {
-          httpOnly: true,
-          expires: new Date(Date.now() + 3600000),
-        })
+        .cookie("access_token", token, authCookieOptions)
         .status(200)
         .json(otherDetails);
     } else {
@@ -58,26 +83,32 @@ export const googleAuth = async (req, res, next) => {
         Math.random().toString(36).slice(-8) +
         Math.random().toString(36).slice(-8);
       const hashedPassword = bcrypt.hashSync(generatedPassword, 10);
+      const baseUsername =
+        name.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase().slice(0, 24) ||
+        "user";
       const newUser = new User({
-        username:
-          req.body.name.split(" ").join("").toLowerCase() +
-          Math.random().toString(36).slice(-4),
-        email: req.body.email,
+        username: baseUsername + Math.random().toString(36).slice(-4),
+        email,
         password: hashedPassword,
-        avatar: req.body.photoURL,
+        avatar: photoURL,
+        isAdmin: isAdminEmail(email),
       });
       await newUser.save();
-      const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
+      const token = createAuthToken(newUser._id);
       const { password, ...otherDetails } = newUser._doc;
       res
-        .cookie("access_token", token, {
-          httpOnly: true,
-          expires: new Date(Date.now() + 3600000),
-        })
+        .cookie("access_token", token, authCookieOptions)
         .status(200)
         .json(otherDetails);
     }
   } catch (error) {
     next(error);
   }
+};
+
+export const signout = (req, res) => {
+  res
+    .clearCookie("access_token", authCookieOptions)
+    .status(200)
+    .json("User has been signed out");
 };
