@@ -1,4 +1,5 @@
 import Listing from "../models/listing.model.js";
+import Notification from "../models/notification.model.js";
 import sanitizeHtml from "sanitize-html";
 import { notifyAdminNewListing } from "../utils/adminNotification.js";
 import { uploadImageBuffer } from "../utils/cloudinary.js";
@@ -438,6 +439,7 @@ export const deleteListing = async (req, res, next) => {
     }
 
     await Listing.findByIdAndDelete(req.params.id);
+    await Notification.deleteMany({ listingRef: req.params.id });
     res.status(200).json("Estate has been deleted");
   } catch (error) {
     next(error);

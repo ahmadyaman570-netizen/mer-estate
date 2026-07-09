@@ -162,14 +162,14 @@ export default function Home() {
 
   return (
     <main className="bg-slate-50">
-      <section className="relative min-h-[420px] overflow-hidden">
+      <section className="relative min-h-420px overflow-hidden">
         <img
           src={heroImage}
           alt="Modern estate"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-slate-950/55" />
-        <div className="relative mx-auto flex min-h-[420px] max-w-6xl flex-col justify-center px-4 py-14">
+        <div className="relative mx-auto flex min-h-420px max-w-6xl flex-col justify-center px-4 py-14">
           <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
             Find the estate that fits your next move
           </h1>

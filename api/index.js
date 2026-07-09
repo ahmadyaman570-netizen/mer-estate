@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import listingRouter from "./routes/listing.route.js";
+import notificationRouter from "./routes/notification.route.js";
 import { rateLimit, securityHeaders } from "./middleware/security.js";
 dotenv.config();
 
@@ -31,9 +32,11 @@ app.listen(3000, () => {
 app.use("/api/auth", rateLimit({ max: 20, keyPrefix: "auth" }));
 app.use("/api/users", rateLimit({ max: 60, keyPrefix: "users" }));
 app.use("/api/listings", rateLimit({ max: 80, keyPrefix: "listings" }));
+app.use("/api/notifications", rateLimit({ max: 80, keyPrefix: "notifications" }));
 app.use("/api/users", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/listings", listingRouter);
+app.use("/api/notifications", notificationRouter);
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   let message = err.message || "Internal Server Error";

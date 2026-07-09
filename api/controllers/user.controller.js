@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import Listing from "../models/listing.model.js";
+import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import { errorHandler } from "../utils/error.js";
 import { authCookieOptions } from "../utils/authCookie.js";
@@ -105,6 +106,7 @@ export const adminDeleteUser = async (req, res, next) => {
     }
 
     await Listing.deleteMany({ userRef: req.params.id });
+    await Notification.deleteMany({ userRef: req.params.id });
     await User.findByIdAndDelete(req.params.id);
 
     res.status(200).json("User and their estates have been deleted");
